@@ -1,0 +1,33 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # No ports: block here — the backend doesn't need to be reachable from the
+    # host directly. nginx proxies all /api/ traffic to it internally.
+    # If you need to hit the backend API directly during development, add:
+    #   ports:
+    #     - "127.0.0.1:8000:8000"
+    expose:
+      - "8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3002:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
